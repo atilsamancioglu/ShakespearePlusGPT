@@ -18,7 +18,7 @@ from dataset import download_shakespeare, CharacterTokenizer, DATA_PATH
 # Load Model
 # ==============================================================================
 
-def load_model(checkpoint_path: str = "checkpoints/best.pt"):
+def load_model(checkpoint_path: str = "checkpoints/model.pt"):
     """
     Load a trained GPT model from checkpoint.
 
@@ -129,7 +129,7 @@ if __name__ == "__main__":
     print("Shakespeare GPT - Text Generation")
     print("=" * 60)
 
-    model, tokenizer, device = load_model("checkpoints/best.pt")
+    model, tokenizer, device = load_model("checkpoints/model.pt")
 
     # 2. Define some example prompts to try
     prompts = [
