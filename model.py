@@ -11,6 +11,40 @@ Architecture Overview:
 4. Output Layer - Predicts next character
 
 This implementation uses PyTorch's built-in MultiheadAttention for clarity.
+
+-----------------------------------------------------------------------------
+GPT vs "Attention Is All You Need" (Original Transformer)
+-----------------------------------------------------------------------------
+The original Transformer (Vaswani et al., 2017) uses an ENCODER-DECODER
+architecture for translation tasks (e.g., English → French).
+It has 3 types of attention:
+  1. Encoder self-attention   (bidirectional - sees all tokens)
+  2. Decoder masked attention (causal - can't see future tokens)
+  3. Cross-attention          (decoder attends to encoder output)
+
+GPT simplifies this by using ONLY the decoder part:
+  - No encoder         → removed
+  - No cross-attention → removed (no encoder to attend to)
+  - Only masked self-attention + feed-forward layers remain
+
+Original Transformer Block (Decoder):     GPT Block (this model):
+┌─────────────────────────┐               ┌─────────────────────────┐
+│ Masked Self-Attention   │  KEEP         │ Masked Self-Attention   │
+├─────────────────────────┤               ├─────────────────────────┤
+│ Cross-Attention         │  REMOVE       │                         │
+├─────────────────────────┤               ├─────────────────────────┤
+│ Feed-Forward            │  KEEP         │ Feed-Forward            │
+└─────────────────────────┘               └─────────────────────────┘
+
+Why does decoder-only work?
+GPT's insight: just train a decoder to predict the next token on massive
+amounts of text, and it learns language well enough for many tasks.
+
+Common architectures:
+  Encoder-Decoder:  Original Transformer, T5  (translation, summarization)
+  Decoder-only:     GPT, LLaMA, ChatGPT       (text generation, chatbots)
+  Encoder-only:     BERT                       (text understanding)
+-----------------------------------------------------------------------------
 """
 
 import torch
@@ -136,14 +170,45 @@ class GPT(nn.Module):
         self.block_size = block_size
 
         # 3. Create Token Embedding layer
-        # Maps each character ID to a vector of size embedding_dim
+        # Maps each character ID to a learnable vector of size embedding_dim
+        #
+        # -----------------------------------------------------------------------
+        # nn.Embedding vs nn.Parameter (for ViT students)
+        # -----------------------------------------------------------------------
+        # In ViT, you used nn.Parameter to create learnable embeddings:
+        #   self.cls_token = nn.Parameter(torch.randn(1, 1, embed_dim))
+        #   self.pos_embed = nn.Parameter(torch.randn(1, num_patches, embed_dim))
+        #
+        # nn.Embedding does the SAME thing - it's just a convenience wrapper.
+        # Under the hood, it creates a learnable weight matrix (nn.Parameter)
+        # with a built-in lookup-by-index operation:
+        #
+        #   nn.Parameter approach:
+        #       self.token_emb = nn.Parameter(torch.randn(65, 384))
+        #       emb = self.token_emb[token_ids]         # manual indexing
+        #
+        #   nn.Embedding approach (what we use):
+        #       self.token_emb = nn.Embedding(65, 384)
+        #       emb = self.token_emb(token_ids)          # built-in lookup
+        #
+        # Both are learnable, both are updated by backpropagation.
+        # nn.Embedding is preferred here because token IDs change every batch
+        # (different characters each time), so lookup-by-index is cleaner.
+        #
+        # What does it learn?
+        # - Token embedding: learns what each character "means"
+        #   (characters in similar contexts get similar vectors)
+        # - Position embedding: learns what each position "means"
+        #   (e.g., start of sentence behaves differently from middle)
+        # -----------------------------------------------------------------------
         self.token_embedding = nn.Embedding(
             num_embeddings=vocab_size,
             embedding_dim=embedding_dim
         )
 
         # 4. Create Position Embedding layer
-        # Each position (0, 1, 2, ..., block_size-1) gets its own vector
+        # Each position (0, 1, 2, ..., block_size-1) gets its own learnable vector
+        # Same as nn.Parameter(torch.randn(block_size, embedding_dim)) in ViT
         self.position_embedding = nn.Embedding(
             num_embeddings=block_size,
             embedding_dim=embedding_dim
