@@ -48,10 +48,27 @@ def get_learning_rate(iteration):
     """
     Learning rate with warmup.
 
-    Why warmup?
-    At the start of training, the model weights are random and gradients can be
-    large/unstable. Starting with a small LR and gradually increasing helps
-    stabilize early training.
+    -------------------------------------------------------------------------
+    WHY START WITH A LOW LEARNING RATE? (Warmup)
+    -------------------------------------------------------------------------
+    At iteration 0, weights are RANDOM → gradients point in unreliable
+    directions. A large LR would take big steps in wrong directions,
+    potentially destabilizing training permanently.
+
+    Warmup lets the model "get its bearings" first:
+      - Start slow → gradients are unreliable, take small careful steps
+      - Speed up   → gradients become meaningful, learn efficiently
+
+    Analogy: Like driving in an unfamiliar city - go slow at first
+    to read the signs, then speed up once you know where you're going.
+
+    Full training LR strategy (used in GPT papers):
+      Start:  low → high  (warmup - unreliable gradients)
+      Middle: constant     (learn efficiently)
+      End:    high → low   (fine-tune, don't overshoot)
+
+    We implement the first two stages for simplicity.
+    -------------------------------------------------------------------------
 
     Schedule:
         Iteration 0-100:   LR increases from 0 → 0.0003 (warmup)

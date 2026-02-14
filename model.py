@@ -339,6 +339,10 @@ class GPT(nn.Module):
         for _ in range(max_new_tokens):
 
             # 22. If sequence is longer than block_size, crop to last block_size tokens
+            # .size(1) gets the sequence length (dim 0=batch, dim 1=sequence)
+            # -self.block_size uses negative indexing to take the LAST 256 tokens
+            # e.g., 350 tokens with block_size=256 → [:, -256:] → last 256 tokens
+            # This is needed because position embeddings only go up to block_size
             if input_ids.size(1) <= self.block_size:
                 current_input = input_ids
             else:
@@ -359,6 +363,11 @@ class GPT(nn.Module):
             probs = F.softmax(last_logits, dim=-1)
 
             # 27. Sample one token from the probability distribution
+            # Why multinomial (random sampling) instead of argmax?
+            # - In vision: argmax picks ONE correct class (cat is always cat)
+            # - In text generation: there are many valid next characters
+            #   argmax would always pick the same char → "the the the the..."
+            #   multinomial samples randomly based on probabilities → natural text
             next_token = torch.multinomial(probs, num_samples=1)
 
             # 28. Append to sequence and continue
