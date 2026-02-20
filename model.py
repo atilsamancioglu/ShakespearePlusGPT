@@ -82,6 +82,14 @@ class TransformerBlock(nn.Module):
         super().__init__()
 
         # 2. Create the first Layer Normalization
+        # We apply LayerNorm BEFORE each sublayer (Pre-LN), not after (Post-LN).
+        #
+        # Original Transformer (2017): x → Attention → Add(x) → LayerNorm  (Post-LN)
+        # GPT-2/GPT-3 and our model:   x → LayerNorm → Attention → Add(x)  (Pre-LN)
+        #
+        # Pre-LN produces more stable gradients and converges faster.
+        # Reference: "On Layer Normalization in the Transformer Architecture"
+        # (Xiong et al., 2020) - https://arxiv.org/abs/2002.04745
         self.ln1 = nn.LayerNorm(embedding_dim)
 
         # 3. Create Multi-Head Self-Attention using PyTorch's built-in module
