@@ -100,7 +100,7 @@ class CharacterTokenizer:
         characters = []
         for id in ids:
             characters.append(self.id_to_char[id])
-        return ''.join(characters)
+        return "".join(characters)
 
 
 def get_batch(data: torch.Tensor, block_size: int, batch_size: int):
@@ -152,8 +152,10 @@ def get_batch(data: torch.Tensor, block_size: int, batch_size: int):
     y_list = []
 
     for pos in positions:
-        x_list.append(data[pos : pos + block_size])        # Input: chars 0 to n-1
-        y_list.append(data[pos + 1 : pos + block_size + 1])  # Target: chars 1 to n (shifted by 1)
+        x_list.append(data[pos : pos + block_size])  # Input: chars 0 to n-1
+        y_list.append(
+            data[pos + 1 : pos + block_size + 1]
+        )  # Target: chars 1 to n (shifted by 1)
 
     # 3. Stack into batch tensors: (batch_size, block_size)
     x = torch.stack(x_list)
@@ -179,7 +181,7 @@ def load_data(block_size: int = 256, train_split: float = 0.9):
     download_shakespeare()
 
     # 2. Load the text file
-    with open(DATA_PATH, 'r', encoding='utf-8') as file:
+    with open(DATA_PATH, "r", encoding="utf-8") as file:
         text = file.read()
 
     print(f"\nDataset size: {len(text):,} characters")
