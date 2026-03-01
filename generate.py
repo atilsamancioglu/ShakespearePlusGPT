@@ -18,6 +18,7 @@ from dataset import download_shakespeare, CharacterTokenizer, DATA_PATH
 # Load Model
 # ==============================================================================
 
+
 def load_model(checkpoint_path: str = "checkpoints/model.pt"):
     """
     Load a trained GPT model from checkpoint.
@@ -39,26 +40,26 @@ def load_model(checkpoint_path: str = "checkpoints/model.pt"):
     checkpoint = torch.load(checkpoint_path, map_location=device, weights_only=False)
 
     # 3. Get the model configuration that was saved during training
-    config = checkpoint['config']
+    config = checkpoint["config"]
 
     # 4. Create the tokenizer (we need the same vocabulary as training)
     download_shakespeare()
-    with open(DATA_PATH, 'r', encoding='utf-8') as file:
+    with open(DATA_PATH, "r", encoding="utf-8") as file:
         text = file.read()
     tokenizer = CharacterTokenizer(text)
 
     # 5. Create the model with the saved configuration
     model = GPT(
-        vocab_size=config['vocab_size'],
-        embedding_dim=config['embedding_dim'],
-        num_heads=config['num_heads'],
-        num_layers=config['num_layers'],
-        block_size=config['block_size'],
-        dropout=0.0  # No dropout during generation
+        vocab_size=config["vocab_size"],
+        embedding_dim=config["embedding_dim"],
+        num_heads=config["num_heads"],
+        num_layers=config["num_layers"],
+        block_size=config["block_size"],
+        dropout=0.0,  # No dropout during generation
     )
 
     # 6. Load the trained weights into the model
-    model.load_state_dict(checkpoint['model_state_dict'])
+    model.load_state_dict(checkpoint["model_state_dict"])
 
     # 7. Move model to device and set to evaluation mode
     model = model.to(device)
@@ -76,8 +77,16 @@ def load_model(checkpoint_path: str = "checkpoints/model.pt"):
 # Generate Text
 # ==============================================================================
 
+
 @torch.no_grad()
-def generate(model, tokenizer, device, prompt: str, max_tokens: int = 500, temperature: float = 0.8):
+def generate(
+    model,
+    tokenizer,
+    device,
+    prompt: str,
+    max_tokens: int = 500,
+    temperature: float = 0.8,
+):
     """
     Generate text given a starting prompt.
 
@@ -103,13 +112,13 @@ def generate(model, tokenizer, device, prompt: str, max_tokens: int = 500, tempe
     # 1. Convert prompt text to token IDs
     prompt_ids = tokenizer.encode(prompt)
     input_ids = torch.tensor(prompt_ids, dtype=torch.long, device=device)
-    input_ids = input_ids.unsqueeze(0)  # Add batch dimension: shape becomes (1, seq_len)
+    input_ids = input_ids.unsqueeze(
+        0
+    )  # Add batch dimension: shape becomes (1, seq_len)
 
     # 2. Generate new tokens using the model's generate method
     output_ids = model.generate(
-        input_ids=input_ids,
-        max_new_tokens=max_tokens,
-        temperature=temperature
+        input_ids=input_ids, max_new_tokens=max_tokens, temperature=temperature
     )
 
     # 3. Convert token IDs back to text
@@ -123,7 +132,6 @@ def generate(model, tokenizer, device, prompt: str, max_tokens: int = 500, tempe
 # ==============================================================================
 
 if __name__ == "__main__":
-
     # 1. Load the trained model
     print("=" * 60)
     print("Shakespeare GPT - Text Generation")
@@ -152,7 +160,7 @@ if __name__ == "__main__":
             device=device,
             prompt=prompt,
             max_tokens=300,
-            temperature=0.8
+            temperature=0.8,
         )
 
         print(generated_text)
@@ -169,7 +177,7 @@ if __name__ == "__main__":
         try:
             prompt = input("\nYour prompt: ")
 
-            if prompt.lower() in ['quit', 'exit', 'q']:
+            if prompt.lower() in ["quit", "exit", "q"]:
                 print("Farewell!")
                 break
 
@@ -182,7 +190,7 @@ if __name__ == "__main__":
                 device=device,
                 prompt=prompt,
                 max_tokens=500,
-                temperature=0.8
+                temperature=0.8,
             )
 
             print("\n" + generated_text)

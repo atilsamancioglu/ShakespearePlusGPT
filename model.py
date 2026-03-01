@@ -75,10 +75,9 @@ class TransformerBlock(nn.Module):
     # The key relationship: head_size = embedding_dim / num_heads = 64
     # This head_size=64 is consistent across most GPT models.
     # -------------------------------------------------------------------------
-    def __init__(self,
-                 embedding_dim: int = 384,
-                 num_heads: int = 6,
-                 dropout: float = 0.1):
+    def __init__(
+        self, embedding_dim: int = 384, num_heads: int = 6, dropout: float = 0.1
+    ):
         super().__init__()
 
         # 2. Create the first Layer Normalization
@@ -98,7 +97,7 @@ class TransformerBlock(nn.Module):
             embed_dim=embedding_dim,
             num_heads=num_heads,
             dropout=dropout,
-            batch_first=True  # Input shape: (batch, sequence, embedding)
+            batch_first=True,  # Input shape: (batch, sequence, embedding)
         )
 
         # 4. Create the second Layer Normalization
@@ -117,9 +116,9 @@ class TransformerBlock(nn.Module):
         # patterns, then compresses back to the original size.
         self.mlp = nn.Sequential(
             nn.Linear(embedding_dim, 4 * embedding_dim),  # Expand: 384 → 1536
-            nn.GELU(),                                     # Activation function
+            nn.GELU(),  # Activation function
             nn.Linear(4 * embedding_dim, embedding_dim),  # Project back: 1536 → 384
-            nn.Dropout(dropout)                            # Regularization
+            nn.Dropout(dropout),  # Regularization
         )
 
     # 6. Create the forward method
@@ -140,7 +139,7 @@ class TransformerBlock(nn.Module):
             key=x_norm,
             value=x_norm,
             attn_mask=causal_mask,
-            is_causal=False  # We provide our own mask
+            is_causal=False,  # We provide our own mask
         )
         x = x + attn_output  # Residual connection
 
@@ -165,13 +164,15 @@ class GPT(nn.Module):
     """
 
     # 1. Initialize the class with hyperparameters
-    def __init__(self,
-                 vocab_size: int,
-                 embedding_dim: int = 384,
-                 num_heads: int = 6,
-                 num_layers: int = 6,
-                 block_size: int = 256,
-                 dropout: float = 0.1):
+    def __init__(
+        self,
+        vocab_size: int,
+        embedding_dim: int = 384,
+        num_heads: int = 6,
+        num_layers: int = 6,
+        block_size: int = 256,
+        dropout: float = 0.1,
+    ):
         super().__init__()
 
         # 2. Store block_size for generation
@@ -210,30 +211,28 @@ class GPT(nn.Module):
         #   (e.g., start of sentence behaves differently from middle)
         # -----------------------------------------------------------------------
         self.token_embedding = nn.Embedding(
-            num_embeddings=vocab_size,
-            embedding_dim=embedding_dim
+            num_embeddings=vocab_size, embedding_dim=embedding_dim
         )
 
         # 4. Create Position Embedding layer
         # Each position (0, 1, 2, ..., block_size-1) gets its own learnable vector
         # Same as nn.Parameter(torch.randn(block_size, embedding_dim)) in ViT
         self.position_embedding = nn.Embedding(
-            num_embeddings=block_size,
-            embedding_dim=embedding_dim
+            num_embeddings=block_size, embedding_dim=embedding_dim
         )
 
         # 5. Create Embedding Dropout
         self.dropout = nn.Dropout(dropout)
 
         # 6. Create stack of Transformer Blocks
-        self.blocks = nn.ModuleList([
-            TransformerBlock(
-                embedding_dim=embedding_dim,
-                num_heads=num_heads,
-                dropout=dropout
-            )
-            for _ in range(num_layers)
-        ])
+        self.blocks = nn.ModuleList(
+            [
+                TransformerBlock(
+                    embedding_dim=embedding_dim, num_heads=num_heads, dropout=dropout
+                )
+                for _ in range(num_layers)
+            ]
+        )
 
         # 7. Create Final Layer Normalization
         self.ln_final = nn.LayerNorm(embedding_dim)
@@ -285,8 +284,7 @@ class GPT(nn.Module):
         # torch.triu creates an upper triangular matrix of True values.
         # True = masked (blocked), False = allowed to attend
         causal_mask = torch.triu(
-            torch.ones(block_size, block_size, dtype=torch.bool),
-            diagonal=1
+            torch.ones(block_size, block_size, dtype=torch.bool), diagonal=1
         )
         # register_buffer: saves tensor with model & moves it to GPU with model,
         # but it's NOT a learnable parameter (optimizer won't update it)
@@ -320,9 +318,7 @@ class GPT(nn.Module):
             torch.nn.init.normal_(module.weight, mean=0.0, std=0.02)
 
     # 12. Create the forward method
-    def forward(self,
-                input_ids: torch.Tensor,
-                targets: torch.Tensor = None) -> tuple:
+    def forward(self, input_ids: torch.Tensor, targets: torch.Tensor = None) -> tuple:
         """
         Forward pass of the GPT model.
 
@@ -397,7 +393,9 @@ class GPT(nn.Module):
 
     # 21. Generate method for text generation
     @torch.no_grad()
-    def generate(self, input_ids: torch.Tensor, max_new_tokens: int, temperature: float = 1.0):
+    def generate(
+        self, input_ids: torch.Tensor, max_new_tokens: int, temperature: float = 1.0
+    ):
         """
         Generate new tokens one at a time (autoregressive generation).
 
@@ -410,7 +408,6 @@ class GPT(nn.Module):
             temperature: Controls randomness (0.5=predictable, 1.0=normal, 1.5=creative)
         """
         for _ in range(max_new_tokens):
-
             # 22. If sequence is longer than block_size, crop to last block_size tokens
             # .size(1) gets the sequence length (dim 0=batch, dim 1=sequence)
             # -self.block_size uses negative indexing to take the LAST 256 tokens
@@ -419,7 +416,7 @@ class GPT(nn.Module):
             if input_ids.size(1) <= self.block_size:
                 current_input = input_ids
             else:
-                current_input = input_ids[:, -self.block_size:]
+                current_input = input_ids[:, -self.block_size :]
 
             # 23. Get model predictions
             logits, _ = self.forward(current_input)
@@ -457,11 +454,7 @@ if __name__ == "__main__":
 
     # 2. Create model
     model = GPT(
-        vocab_size=65,
-        embedding_dim=384,
-        num_heads=6,
-        num_layers=6,
-        block_size=256
+        vocab_size=65, embedding_dim=384, num_heads=6, num_layers=6, block_size=256
     ).to(device)
 
     # 3. Create dummy input
